@@ -1,0 +1,90 @@
+{
+  "realm": "demo-client",
+  "enabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "admin" },
+      { "name": "user" },
+      { "name": "viewer" },
+      { "name": "editor" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "client-app",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "client-app-secret",
+      "redirectUris": ["https://localhost/callback"],
+      "webOrigins": ["https://localhost"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email", "db-user-id"]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "db-user-id",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "db_user_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "db_user_id",
+            "claim.name": "db_user_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "browser-rest",
+      "description": "Browser flow for legacy REST verification",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 0,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "rest-authenticator",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "rest-authenticator-config"
+        }
+      ]
+    }
+  ],
+  "authenticatorConfig": [
+    {
+      "alias": "rest-authenticator-config",
+      "config": {
+        "verify_url": "http://client-app:3000/auth/verify",
+        "api_key": "demo-shared-api-key"
+      }
+    }
+  ],
+  "browserFlow": "browser-rest"
+}

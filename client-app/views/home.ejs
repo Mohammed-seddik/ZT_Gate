@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <body>
+    <h1>Protected Home</h1>
+    <p>Welcome <%= user.name || user.username %></p>
+    <ul>
+      <li>username: <%= user.username %></li>
+      <li>email: <%= user.email %></li>
+      <li>db_user_id: <%= user.dbUserId %></li>
+      <li>roles: <%= user.roles.join(', ') %></li>
+    </ul>
+    <a href="/logout">Logout</a>
+  </body>
+</html>
