@@ -1,0 +1,87 @@
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.31-latest
+    depends_on:
+      - client-app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./certs:/etc/envoy/certs:ro
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - keycloak-postgres:/var/lib/postgresql/data
+
+  keycloak:
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - client-app
+    command:
+      - start-dev
+      - --http-enabled=true
+      - --hostname=localhost
+      - --hostname-strict=false
+      - --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_SPI_REST_AUTHENTICATOR_VERIFY_URL: http://client-app:3000/auth/verify
+      KC_SPI_REST_AUTHENTICATOR_API_KEY: demo-shared-api-key
+    ports:
+      - "127.0.0.1:8081:8080"
+
+  mysql:
+    image: mysql:8.4
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql-data:/var/lib/mysql
+
+  client-app:
+    build:
+      context: ./client-app
+      dockerfile: Dockerfile
+    depends_on:
+      - mysql
+    environment:
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: appuser
+      DB_PASSWORD: apppass
+      DB_NAME: appdb
+      SHARED_API_KEY: demo-shared-api-key
+      SESSION_SECRET: change-me-demo-secret
+      OIDC_ISSUER: http://localhost:8081/realms/demo-client
+      OIDC_CLIENT_ID: client-app
+      OIDC_CLIENT_SECRET: client-app-secret
+      OIDC_REDIRECT_URI: https://localhost/callback
+      BASE_URL: https://localhost
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    expose:
+      - "3000"
+
+volumes:
+  keycloak-postgres:
+  mysql-data:
